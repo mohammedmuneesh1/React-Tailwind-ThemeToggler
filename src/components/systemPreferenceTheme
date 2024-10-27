@@ -1,0 +1,68 @@
+//THIS CODE BASE CONSIST OF SETTING THEME BASED ON SYSTEM PREFERENCE 
+
+import { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
+
+const getPreferredTheme = () => {
+  // Detects system preference
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const useTheme = () => {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedTheme = Cookies.get('theme');
+        if (storedTheme === 'system') return 'system';
+        return storedTheme === 'dark' ? 'dark' : 'light';
+      } catch (error) {
+        console.warn('Error reading theme from cookies:', error);
+        return 'light';
+      }
+    }
+    return 'light';
+  });
+
+  const toggleTheme = (newTheme) => {
+    if (newTheme) {
+      setTheme(newTheme);
+    } else {
+      // Cycles between light, dark, and system
+      setTheme((prevTheme) => {
+        if (prevTheme === 'light') return 'dark';
+        if (prevTheme === 'dark') return 'system';
+        return 'light';
+      });
+    }
+  };
+
+  useEffect(() => {
+    const element = document.documentElement;
+    let appliedTheme = theme;
+
+    if (theme === 'system') {
+      appliedTheme = getPreferredTheme();
+      const systemChangeListener = (e) => {
+        const newSystemTheme = e.matches ? 'dark' : 'light';
+        setTheme(newSystemTheme);
+      };
+
+      // Update theme based on OS preference changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', systemChangeListener);
+
+      return () => mediaQuery.removeEventListener('change', systemChangeListener);
+    }
+
+    Cookies.set('theme', theme);
+    if (appliedTheme === 'dark') {
+      element.classList.add('dark');
+    } else {
+      element.classList.remove('dark');
+    }
+  }, [theme]);
+
+  return { theme, toggleTheme };
+};
+
+export default useTheme;
